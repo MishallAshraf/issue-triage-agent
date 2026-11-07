@@ -21,7 +21,7 @@ agent ──(read tool calls only)──> tools ──> agent
 
 ## Observing it
 
-With Langfuse keys in `.env`, each run is one trace: the graph steps, every LLM call (tokens, cost, latency) and every tool call, with scores attached to the trace (`gate_respected`, `label_f1`, `duplicate`, `faithful`). Emails and token-like strings in issue text are masked before anything is sent. Without keys, everything runs untraced.
+With Langfuse keys in `.env`, each run is one trace: the graph steps, every LLM call (tokens, cost, latency) and every tool call, with scores attached to the trace (`gate_respected`, `label_f1`, `duplicate`, `faithful`). The top of each trace holds a summary built by the code that ran the agent (which writes ran, which were rejected, which tools failed), with counts in the metadata for filtering. Emails and token-like strings in issue text are masked before anything is sent. Tracing fails open: if Langfuse is down, the run carries on untraced. Without keys, everything runs untraced. [docs/observability.md](docs/observability.md) covers what a trace holds and how to find a bad run.
 
 ## Checking quality
 
@@ -45,7 +45,13 @@ Two layers of checks:
 
 `.github/workflows/evals.yml` runs the unit tests and then the eval gate on **recorded** runs on every PR, with no API calls, so it's free and deterministic. Thresholds live in `evals/thresholds.json`; the safety ones (approval gate, valid labels, no unbacked claims) must be 100%. A manual `workflow_dispatch` with `live: true` runs the agent for real using repository secrets.
 
+Thresholds say "good enough"; they don't say "worse than last time". So `evals/baseline.json` holds the numbers from a reference run (`--save-baseline`), and every run prints each metric next to it and flags the ones that dropped.
+
 Recordings drop issue bodies; the issue cache itself is gitignored, since issue text belongs to its authors.
+
+## Design decisions
+
+The main choices, with the reasons and what they cost, are in [docs/adr/](docs/adr/README.md): the approval gate, search that only sees earlier issues, masking before tracing, the narrow calibrated judge, replaying recordings in CI, the run summary on each trace, and tracing that fails open.
 
 ## Run it
 
@@ -59,6 +65,7 @@ python -m triage.cli 1234           # triage one issue, approving each write you
 python -m evals.build_golden        # rebuild the golden set from the snapshot
 python -m evals.run_evals --live    # run, record, score, judge
 python -m evals.run_evals           # re-score recordings (what CI does)
+python -m evals.run_evals --save-baseline   # keep these numbers as the baseline
 python -m evals.label_probes        # label the judge probes by hand
 python -m evals.calibrate           # judge vs human: Cohen's kappa
 pytest -q
