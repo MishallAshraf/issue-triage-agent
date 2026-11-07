@@ -33,7 +33,7 @@ def load_probes(path: Path = HERE / "probes.jsonl") -> list[dict]:
 
 
 def main() -> int:
-    from triage.agent import make_model
+    from triage.llm import make_model
     from triage.config import settings
     from evals.judge import FaithfulnessJudge
 

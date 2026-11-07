@@ -2,6 +2,7 @@
 
     python -m evals.run_evals --live      # run the agent on every golden case, record, score, judge
     python -m evals.run_evals             # replay: re-score saved recordings (no API key; what CI runs)
+    python -m evals.run_evals --save-baseline   # store these numbers as the baseline to compare against
 
 Each golden case has an approval policy, so some runs have writes rejected on purpose.
 That's how the suite checks the agent behaves after a rejection: no retrying, and no
@@ -21,6 +22,9 @@ from evals.checks import check_run
 
 HERE = Path(__file__).parent
 RECORDINGS = HERE / "recordings"
+BASELINE = HERE / "baseline.json"
+# Metrics where a lower number is better; for every other metric, higher is better.
+LOWER_IS_BETTER = {"false_duplicate_rate", "mean_steps"}
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -49,7 +53,8 @@ def redact(run: dict) -> dict:
 
 
 def live(cases: list[dict], judge_on: bool) -> None:
-    from triage.agent import dumps_run, make_model, run_triage
+    from triage.agent import dumps_run, run_triage, summarize
+    from triage.llm import make_model
     from triage.config import settings
     from triage.data import load
     from triage.search import IssueIndex
@@ -78,7 +83,8 @@ def live(cases: list[dict], judge_on: bool) -> None:
             if res["labels"]:
                 tr.score("label_f1", res["labels"]["f1"])
             tr.score("duplicate", res["duplicate"])
-            tr.finish({"final": run["final"], "outbox": run["outbox"]})
+            tr.finish(summarize(run["trajectory"], final=run["final"], outbox=run["outbox"],
+                                n_steps=run["steps"], stopped_by_cap=run["stopped_by_cap"]))
         (RECORDINGS / f"{case['issue']}.json").write_text(json.dumps(redact(run), indent=1), encoding="utf-8")
         f1 = f"{res['labels']['f1']:.2f}" if res["labels"] else "n/a"
         print(f"  #{case['issue']}: {res['duplicate']}, label F1 {f1}, "
@@ -96,6 +102,7 @@ def score(cases: list[dict], repo_labels: set[str]) -> dict:
         run = json.loads(path.read_text(encoding="utf-8"))
         row = check_run(run, case, repo_labels)
         row["judge"] = run.get("judge", {}).get("verdict")
+        row["model"] = run.get("model")
         rows.append(row)
 
     n = len(rows)
@@ -134,12 +141,38 @@ def gate(summary: dict, thresholds: dict) -> list[str]:
     return fails
 
 
+def compare(summary: dict, baseline: dict) -> list[dict]:
+    """Each metric next to its baseline value, flagging the ones that got worse.
+
+    Thresholds say "good enough to ship"; the baseline says "did this change make
+    things better or worse than last time". A drop can matter even above threshold.
+    """
+    out = []
+    for metric, old in baseline["metrics"].items():
+        new = summary.get(metric)
+        if new is None or old is None:
+            continue
+        delta = new - old
+        worse = delta > 1e-9 if metric in LOWER_IS_BETTER else delta < -1e-9
+        out.append({"metric": metric, "baseline": old, "now": new, "delta": delta, "worse": worse})
+    return out
+
+
+def save_baseline(summary: dict, model: str | None) -> None:
+    metrics = {k: v for k, v in summary.items() if k not in {"rows", "n"}}
+    BASELINE.write_text(json.dumps({"model": model, "n": summary["n"], "metrics": metrics}, indent=2) + "\n",
+                        encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="run the agent (needs API keys) before scoring")
     ap.add_argument("--no-judge", action="store_true", help="skip the LLM judge in live mode")
     ap.add_argument("--only", type=int, nargs="*", help="issue numbers to run")
+    ap.add_argument("--save-baseline", action="store_true", help="store this run's numbers in evals/baseline.json")
     args = ap.parse_args(argv)
+    if args.save_baseline and args.only:
+        ap.error("--save-baseline needs the full golden set, not --only")
 
     cases = load_jsonl(HERE / "golden.jsonl")
     if args.only:
@@ -159,6 +192,16 @@ def main(argv: list[str] | None = None) -> int:
         if not r["gate_respected"] or r["unbacked_claims"] or r["duplicate"] != "correct" or r["judge"] == "FAIL":
             print(f"  ! #{r['issue']}: dup={r['duplicate']} gate={r['gate_respected']} "
                   f"claims={r['unbacked_claims']} judge={r['judge']}")
+    if BASELINE.exists() and not args.only:
+        base = json.loads(BASELINE.read_text(encoding="utf-8"))
+        print(f"\nAgainst the baseline ({base.get('model')}, {base['n']} cases):")
+        for c in compare(summary, base):
+            mark = "  worse" if c["worse"] else ""
+            print(f"  {c['metric']:22} {c['baseline']:.2f} -> {c['now']:.2f} ({c['delta']:+.2f}){mark}")
+    if args.save_baseline:
+        models = {r["model"] for r in summary["rows"]} - {None}
+        save_baseline(summary, ", ".join(sorted(models)) or None)
+        print(f"\nSaved baseline to {BASELINE.relative_to(HERE.parent)}")
     if fails:
         print("\nGATE FAILED:\n  " + "\n  ".join(fails))
         return 1

@@ -47,18 +47,6 @@ class TriageState(TypedDict):
     stopped_by_cap: bool
 
 
-def make_model(spec: str) -> BaseChatModel:
-    """'openai:gpt-4o-mini' or 'anthropic:claude-...' -> a chat model."""
-    provider, _, name = spec.partition(":")
-    if provider == "openai":
-        from langchain_openai import ChatOpenAI
-        return ChatOpenAI(model=name, temperature=0)
-    if provider == "anthropic":
-        from langchain_anthropic import ChatAnthropic
-        return ChatAnthropic(model=name, temperature=0, max_tokens=2048)
-    raise ValueError(f"Unknown model provider in {spec!r}; use openai:<model> or anthropic:<model>")
-
-
 def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None):
     tools = {t.name: t for t in build_tools(ws)}
     model = llm.bind_tools(list(tools.values()))
@@ -160,6 +148,47 @@ def trajectory(messages: list[AnyMessage]) -> list[dict]:
             for tc in m.tool_calls:
                 steps.append({"id": tc["id"], "tool": tc["name"], "args": tc["args"], "result": results.get(tc["id"])})
     return steps
+
+
+def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int, stopped_by_cap: bool) -> dict:
+    """What happened in one run, stated once by the code that ran it.
+
+    This goes on the root trace observation, so anyone opening a trace (or a later
+    tool reading traces) gets the facts directly instead of rebuilding them from
+    the trace's debug structure. `steps` is the output of `trajectory()`.
+    """
+    def kind(result: str | None) -> str:
+        r = result or ""
+        if r.startswith("Rejected by the human reviewer"):
+            return "rejected"
+        if r.startswith("Error") or r.startswith("Not run"):
+            return "failed"
+        return "ran"
+
+    writes = [s for s in steps if s["tool"] in WRITE_TOOLS]
+    return {
+        "final": final,
+        "outbox": outbox,
+        "writes": {
+            "ran": [{"tool": s["tool"], "args": s["args"]} for s in writes if kind(s["result"]) == "ran"],
+            "rejected": [{"tool": s["tool"], "args": s["args"]} for s in writes if kind(s["result"]) == "rejected"],
+        },
+        "tool_errors": [{"tool": s["tool"], "result": s["result"]} for s in steps if kind(s["result"]) == "failed"],
+        "counts": {
+            "steps": n_steps,
+            "tool_calls": len(steps),
+            "writes_approved": sum(kind(s["result"]) == "ran" for s in writes),
+            "writes_rejected": sum(kind(s["result"]) == "rejected" for s in writes),
+            "tool_errors": sum(kind(s["result"]) == "failed" for s in steps),
+            "stopped_by_cap": stopped_by_cap,
+        },
+    }
+
+
+def summarize_run(run: dict) -> dict:
+    """`summarize` for the dict `run_triage` returns."""
+    return summarize(trajectory(run["messages"]), final=run["final"], outbox=run["outbox"],
+                     n_steps=run["steps"], stopped_by_cap=run["stopped_by_cap"])
 
 
 def dumps_run(run: dict) -> str:

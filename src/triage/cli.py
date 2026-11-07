@@ -10,7 +10,8 @@ import argparse
 import json
 import sys
 
-from .agent import make_model, run_triage, trajectory
+from .agent import run_triage, summarize_run, trajectory
+from .llm import make_model
 from .config import settings
 from .data import load
 from .search import IssueIndex
@@ -44,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Triaging {snap.repo}#{args.issue}: {ws.issue.title}  [{settings.model}]")
     with tracing.traced_run(args.issue, tags=["cli"]) as run:
         result = run_triage(ws, make_model(settings.model), approver, callbacks=run.callbacks)
-        run.finish({"final": result["final"], "outbox": result["outbox"]})
+        run.finish(summarize_run(result))
     tracing.flush()
 
     print("\nSteps:")
