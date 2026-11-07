@@ -12,9 +12,10 @@ import sys
 
 from .agent import run_triage, summarize_run, trajectory
 from .llm import make_model
+from .verify import DuplicateVerifier
 from .config import settings
 from .data import load
-from .search import IssueIndex
+from .search import build_index
 from .tools import Workspace
 from . import tracing
 
@@ -39,12 +40,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.issue not in snap.issues:
         print(f"#{args.issue} is not in the cache for {snap.repo}.", file=sys.stderr)
         return 1
-    ws = Workspace(snap=snap, index=IssueIndex(snap.issues), issue_number=args.issue)
+    ws = Workspace(snap=snap, index=build_index(snap.issues), issue_number=args.issue)
     approver = (lambda p: args.auto) if args.auto else ask
 
-    print(f"Triaging {snap.repo}#{args.issue}: {ws.issue.title}  [{settings.model}]")
+    print(f"Triaging {snap.repo}#{args.issue}: {ws.issue.title}  [{settings.model}, search: {settings.search_method}]")
     with tracing.traced_run(args.issue, tags=["cli"]) as run:
-        result = run_triage(ws, make_model(settings.model), approver, callbacks=run.callbacks)
+        verifier = DuplicateVerifier(make_model(settings.duplicate_model)) if settings.duplicate_model else None
+        result = run_triage(ws, make_model(settings.model), approver, callbacks=run.callbacks, verifier=verifier)
         run.finish(summarize_run(result))
     tracing.flush()
 

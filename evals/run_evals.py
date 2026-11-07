@@ -43,36 +43,49 @@ def approver_for(policy: str):
 
 
 def redact(run: dict) -> dict:
-    """Recordings are committed, so drop issue bodies; keep only what scoring needs."""
+    """Recordings are committed, so drop issue body text (full bodies and search snippets);
+    keep titles, numbers and everything scoring needs."""
     for s in run["trajectory"]:
-        if s["tool"] == "get_issue" and s["result"] and s["result"].startswith("{"):
-            r = json.loads(s["result"])
-            r["body"] = f"<{len(r.get('body', ''))} chars omitted>"
-            s["result"] = json.dumps(r)
+        r = s["result"] or ""
+        if s["tool"] == "get_issue" and r.startswith("{"):
+            d = json.loads(r)
+            d["body"] = f"<{len(d.get('body', ''))} chars omitted>"
+            s["result"] = json.dumps(d)
+        elif s["tool"] == "search_similar_issues" and r.startswith("["):
+            hits = json.loads(r)
+            for h in hits:
+                if "snippet" in h:
+                    h["snippet"] = f"<{len(h['snippet'])} chars omitted>"
+            s["result"] = json.dumps(hits)
     return run
 
 
 def live(cases: list[dict], judge_on: bool) -> None:
     from triage.agent import dumps_run, run_triage, summarize
     from triage.llm import make_model
+    from triage.verify import DuplicateVerifier
     from triage.config import settings
     from triage.data import load
-    from triage.search import IssueIndex
+    from triage.search import build_index
     from triage.tools import Workspace
     from triage import tracing
     from evals.judge import FaithfulnessJudge
 
     snap = load()
-    index = IssueIndex(snap.issues)
+    index = build_index(snap.issues)
     llm = make_model(settings.model)
+    verifier = DuplicateVerifier(make_model(settings.duplicate_model)) if settings.duplicate_model else None
     judge = FaithfulnessJudge(make_model(settings.judge_model)) if judge_on else None
     RECORDINGS.mkdir(exist_ok=True)
 
     for case in cases:
         ws = Workspace(snap=snap, index=index, issue_number=case["issue"])
         with tracing.traced_run(case["issue"], tags=["eval", case["policy"]]) as tr:
-            run = json.loads(dumps_run(run_triage(ws, llm, approver_for(case["policy"]), callbacks=tr.callbacks)))
+            run = json.loads(dumps_run(run_triage(ws, llm, approver_for(case["policy"]), callbacks=tr.callbacks,
+                                                     verifier=verifier)))
             run["model"] = settings.model
+            run["search"] = settings.search_method
+            run["duplicate_model"] = settings.duplicate_model
             run["trace_id"] = tr.trace_id
             res = check_run(run, case, set(snap.labels))
             if judge:
@@ -103,6 +116,8 @@ def score(cases: list[dict], repo_labels: set[str]) -> dict:
         row = check_run(run, case, repo_labels)
         row["judge"] = run.get("judge", {}).get("verdict")
         row["model"] = run.get("model")
+        row["search"] = run.get("search", "bm25")  # recordings from before SEARCH_METHOD existed used BM25
+        row["duplicate_model"] = run.get("duplicate_model")
         rows.append(row)
 
     n = len(rows)
@@ -199,8 +214,11 @@ def main(argv: list[str] | None = None) -> int:
             mark = "  worse" if c["worse"] else ""
             print(f"  {c['metric']:22} {c['baseline']:.2f} -> {c['now']:.2f} ({c['delta']:+.2f}){mark}")
     if args.save_baseline:
-        models = {r["model"] for r in summary["rows"]} - {None}
-        save_baseline(summary, ", ".join(sorted(models)) or None)
+        models = sorted({r["model"] for r in summary["rows"]} - {None})
+        searches = sorted({r["search"] for r in summary["rows"]})
+        checkers = sorted({r["duplicate_model"] or "none" for r in summary["rows"]})
+        save_baseline(summary, f"{', '.join(models) or 'unknown'}, search: {', '.join(searches)}, "
+                               f"duplicate check: {', '.join(checkers)}")
         print(f"\nSaved baseline to {BASELINE.relative_to(HERE.parent)}")
     if fails:
         print("\nGATE FAILED:\n  " + "\n  ".join(fails))

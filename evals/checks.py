@@ -58,9 +58,17 @@ def label_scores(run: dict, expected: set[str]) -> dict:
     return {"precision": p, "recall": r, "f1": f1}
 
 
+DUPLICATE_CHECK_FAILED = "Not run: the duplicate check"
+
+
 def duplicate_outcome(run: dict, expected: int | None) -> str:
-    """'correct', 'missed', 'wrong_original' or 'false_duplicate', judged on what the agent proposed."""
-    marked = [s["args"].get("original") for s in run["trajectory"] if s["tool"] == "mark_duplicate"]
+    """'correct', 'missed', 'wrong_original' or 'false_duplicate', judged on what the system proposed.
+
+    A human rejection still counts as proposed (the reviewer is the test, not the system).
+    A proposal the duplicate verifier blocked does not: the system as a whole decided against it.
+    """
+    marked = [s["args"].get("original") for s in run["trajectory"]
+              if s["tool"] == "mark_duplicate" and not (s["result"] or "").startswith(DUPLICATE_CHECK_FAILED)]
     if expected is None:
         return "false_duplicate" if marked else "correct"
     if not marked:

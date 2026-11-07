@@ -48,3 +48,16 @@ def test_search_tool_never_returns_the_triaged_or_a_later_issue(ws):
     ws.issue_number = 11  # opened after #10, before #12
     hits = json.loads(tools(ws)["search_similar_issues"].invoke({"query": "traces page blank crash dark mode"}))
     assert {h["number"] for h in hits} <= {10}
+
+
+def test_search_results_show_rank_and_snippet_not_raw_scores(ws):
+    hits = json.loads(tools(ws)["search_similar_issues"].invoke({"query": "traces page blank crash"}))
+    assert hits[0] == {"rank": 1, "number": 10, "title": "Traces page crashes on empty project", "state": "open",
+                       "snippet": "Opening traces for a new project shows a blank screen."}
+    assert all("score" not in h for h in hits)
+
+
+def test_long_snippets_are_cut_at_a_word():
+    from triage.tools import SNIPPET_CHARS, _snippet
+    s = _snippet("word " * 100)
+    assert len(s) <= SNIPPET_CHARS + 4 and s.endswith(" ...") and "  " not in s

@@ -16,6 +16,13 @@ from .data import Snapshot
 from .search import IssueIndex
 
 WRITE_TOOLS = {"apply_labels", "mark_duplicate", "post_comment"}
+SNIPPET_CHARS = 200
+
+
+def _snippet(body: str) -> str:
+    """The opening of an issue body on one line, so search results say more than a title."""
+    text = " ".join(body.split())
+    return text if len(text) <= SNIPPET_CHARS else text[:SNIPPET_CHARS].rsplit(" ", 1)[0] + " ..."
 
 
 @dataclass
@@ -45,9 +52,13 @@ def build_tools(ws: Workspace) -> list[StructuredTool]:
         return json.dumps(out)
 
     def search_similar_issues(query: str, k: int = 5) -> str:
-        """Keyword search over earlier issues in the repository. Use it to look for duplicates."""
+        """Search earlier issues in the repository, by keywords and meaning. Use it to look for duplicates.
+        Results are ranked best first; open promising ones with get_issue to compare before deciding."""
         hits = ws.index.search(query, before=ws.issue.created_at, exclude=ws.issue_number, k=min(k, 10))
-        return json.dumps([h.__dict__ for h in hits])
+        # Rank, not the raw score: scores differ in scale between search methods, and a small
+        # hybrid score (e.g. 0.03) reads to a model as a weak match even when it's the best one.
+        return json.dumps([{"rank": i, "number": h.number, "title": h.title, "state": h.state,
+                            "snippet": _snippet(ws.snap.issues[h.number].body)} for i, h in enumerate(hits, 1)])
 
     def list_labels() -> str:
         """List the labels that exist in the repository, with descriptions."""

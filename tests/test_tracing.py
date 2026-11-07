@@ -36,7 +36,7 @@ def test_summary_separates_ran_rejected_and_failed_calls(ws):
     assert [w["tool"] for w in s["writes"]["rejected"]] == ["mark_duplicate", "post_comment"]
     assert [e["tool"] for e in s["tool_errors"]] == ["get_issue"]
     assert s["counts"] == {"steps": 3, "tool_calls": 4, "writes_approved": 1, "writes_rejected": 2,
-                           "tool_errors": 1, "stopped_by_cap": False}
+                           "duplicates_blocked_by_check": 0, "tool_errors": 1, "stopped_by_cap": False}
     assert s["outbox"] == run["outbox"] and s["final"] == run["final"]
 
 

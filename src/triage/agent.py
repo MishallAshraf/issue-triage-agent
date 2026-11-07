@@ -2,13 +2,18 @@
 
     agent ──(only read tool calls)──> tools ──> agent
       │
-      ├──(any write tool call)──> approval [interrupt] ──> tools ──> agent
+      ├──(any write tool call)──> [check_duplicates] ──> approval [interrupt] ──> tools ──> agent
       │
       └──(no tool calls, or step cap hit)──> END
 
 The approval node pauses the graph with `interrupt()`. The caller resumes it with
 `Command(resume={tool_call_id: "approve" | "reject"})`. Rejected calls are never run;
 the agent gets a tool message saying so, and has to carry on without them.
+
+With a duplicate verifier (DUPLICATE_MODEL), every proposed mark_duplicate is first
+checked by a stronger model in `check_duplicates`. Proposals it judges different are
+dropped with its reason, and the human is never asked about them. It's a separate node
+because `interrupt()` re-runs its node on resume, which would repeat the LLM call.
 """
 
 from __future__ import annotations
@@ -32,7 +37,7 @@ SYSTEM_PROMPT = """You triage new GitHub issues for the {repo} repository.
 For the issue you are given:
 1. Read it with get_issue.
 2. Call list_labels and pick only labels that exist. Usually one type label (bug, enhancement, ...) and, if clear, an area label. Don't guess.
-3. Search for earlier issues describing the same problem. Only call mark_duplicate if an earlier issue clearly reports the same thing, not just the same area.
+3. Search for earlier issues describing the same problem. Results are ranked best first, with a short snippet. Before deciding, open the top 1-3 candidates that look related with get_issue and compare them with this issue. Call mark_duplicate if an earlier issue reports the same problem or request, even in different words; don't call it if they only share an area.
 4. Apply the labels with apply_labels. Optionally post one short, polite comment.
 
 Write tools (apply_labels, mark_duplicate, post_comment) need a human's approval and may be rejected. If one is rejected, don't retry it; continue with the rest.
@@ -43,11 +48,15 @@ Finish with a short summary of what you did. Only mention actions whose tool res
 class TriageState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     steps: int
-    decisions: dict[str, str]  # tool_call_id -> "approve" | "reject", set by the approval node
+    decisions: dict[str, str]  # tool_call_id -> "approve" | "reject" | "check_failed"
+    checks: dict[str, str]     # tool_call_id -> the verifier's reason, for duplicates it judged different
     stopped_by_cap: bool
 
 
-def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None):
+CHECK_FAILED = "Not run: the duplicate check judged these to be different problems."
+
+
+def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None, verifier=None):
     tools = {t.name: t for t in build_tools(ws)}
     model = llm.bind_tools(list(tools.values()))
     cap = max_steps or settings.max_steps
@@ -63,20 +72,39 @@ def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None)
         if state["steps"] >= cap:
             return "cap"
         if any(tc["name"] in WRITE_TOOLS for tc in last.tool_calls):
+            if verifier and any(tc["name"] == "mark_duplicate" for tc in last.tool_calls):
+                return "check_duplicates"
             return "approval"
         return "tools"
 
+    def check_duplicates(state: TriageState) -> dict:
+        checks = {}
+        for tc in state["messages"][-1].tool_calls:
+            original = tc["args"].get("original")
+            if tc["name"] != "mark_duplicate" or original not in ws.snap.issues or original == ws.issue_number:
+                continue  # invalid targets are refused by the tool itself
+            verdict = verifier(ws.issue, ws.snap.issues[original])
+            if not verdict.duplicate:
+                checks[tc["id"]] = verdict.reasoning
+        return {"checks": checks}
+
     def approval(state: TriageState) -> dict:
-        calls = [tc for tc in state["messages"][-1].tool_calls if tc["name"] in WRITE_TOOLS]
+        failed = state.get("checks", {})
+        calls = [tc for tc in state["messages"][-1].tool_calls if tc["name"] in WRITE_TOOLS and tc["id"] not in failed]
+        decisions = {cid: "check_failed" for cid in failed}
+        if not calls:  # nothing left for a human to approve
+            return {"decisions": decisions}
         answer = interrupt({"pending": [{"id": tc["id"], "tool": tc["name"], "args": tc["args"]} for tc in calls]})
         if isinstance(answer, str):  # one answer for all pending calls
             answer = {tc["id"]: answer for tc in calls}
-        return {"decisions": {tc["id"]: answer.get(tc["id"], "reject") for tc in calls}}
+        return {"decisions": decisions | {tc["id"]: answer.get(tc["id"], "reject") for tc in calls}}
 
     def run_tools(state: TriageState) -> dict:
         out = []
         for tc in state["messages"][-1].tool_calls:
-            if tc["name"] in WRITE_TOOLS and state["decisions"].get(tc["id"]) != "approve":
+            if state["decisions"].get(tc["id"]) == "check_failed":
+                content = f"{CHECK_FAILED} mark_duplicate was NOT run. Reason: {state['checks'][tc['id']]}"
+            elif tc["name"] in WRITE_TOOLS and state["decisions"].get(tc["id"]) != "approve":
                 content = f"Rejected by the human reviewer. {tc['name']} was NOT run."
             elif tc["name"] not in tools:
                 content = f"Error: unknown tool {tc['name']}."
@@ -86,7 +114,7 @@ def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None)
                 except Exception as e:  # bad arguments from the model: report, don't crash
                     content = f"Error: {e}"
             out.append(ToolMessage(content=str(content), tool_call_id=tc["id"], name=tc["name"]))
-        return {"messages": out, "decisions": {}}
+        return {"messages": out, "decisions": {}, "checks": {}}
 
     def cap_hit(state: TriageState) -> dict:
         # Answer the dangling tool calls so the transcript stays valid, then stop.
@@ -96,11 +124,14 @@ def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None)
 
     g = StateGraph(TriageState)
     g.add_node("agent", agent)
+    g.add_node("check_duplicates", check_duplicates)
     g.add_node("approval", approval)
     g.add_node("tools", run_tools)
     g.add_node("cap", cap_hit)
     g.add_edge(START, "agent")
-    g.add_conditional_edges("agent", route, {"tools": "tools", "approval": "approval", "cap": "cap", END: END})
+    g.add_conditional_edges("agent", route, {"tools": "tools", "approval": "approval",
+                                             "check_duplicates": "check_duplicates", "cap": "cap", END: END})
+    g.add_edge("check_duplicates", "approval")
     g.add_edge("approval", "tools")
     g.add_edge("tools", "agent")
     g.add_edge("cap", END)
@@ -111,14 +142,15 @@ Approver = Callable[[list[dict]], dict[str, str] | str]
 
 
 def run_triage(ws: Workspace, llm: BaseChatModel, approver: Approver, *,
-               callbacks: list | None = None, max_steps: int | None = None) -> dict:
-    """Triage one issue end to end. `approver` sees the pending write calls and answers."""
-    graph = build_graph(ws, llm, max_steps)
+               callbacks: list | None = None, max_steps: int | None = None, verifier=None) -> dict:
+    """Triage one issue end to end. `approver` sees the pending write calls and answers.
+    `verifier`, if given, checks each proposed duplicate before the approver sees it."""
+    graph = build_graph(ws, llm, max_steps, verifier)
     config = {"configurable": {"thread_id": str(uuid.uuid4())}, "callbacks": callbacks or []}
     state = {
         "messages": [SystemMessage(SYSTEM_PROMPT.format(repo=ws.snap.repo)),
                      HumanMessage(f"Triage issue #{ws.issue_number}.")],
-        "steps": 0, "decisions": {}, "stopped_by_cap": False,
+        "steps": 0, "decisions": {}, "checks": {}, "stopped_by_cap": False,
     }
     approvals = []
     result = graph.invoke(state, config)
@@ -161,6 +193,8 @@ def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int
         r = result or ""
         if r.startswith("Rejected by the human reviewer"):
             return "rejected"
+        if r.startswith(CHECK_FAILED):
+            return "blocked"
         if r.startswith("Error") or r.startswith("Not run"):
             return "failed"
         return "ran"
@@ -172,6 +206,8 @@ def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int
         "writes": {
             "ran": [{"tool": s["tool"], "args": s["args"]} for s in writes if kind(s["result"]) == "ran"],
             "rejected": [{"tool": s["tool"], "args": s["args"]} for s in writes if kind(s["result"]) == "rejected"],
+            "blocked_by_duplicate_check": [{"args": s["args"], "result": s["result"]}
+                                           for s in writes if kind(s["result"]) == "blocked"],
         },
         "tool_errors": [{"tool": s["tool"], "result": s["result"]} for s in steps if kind(s["result"]) == "failed"],
         "counts": {
@@ -179,6 +215,7 @@ def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int
             "tool_calls": len(steps),
             "writes_approved": sum(kind(s["result"]) == "ran" for s in writes),
             "writes_rejected": sum(kind(s["result"]) == "rejected" for s in writes),
+            "duplicates_blocked_by_check": sum(kind(s["result"]) == "blocked" for s in writes),
             "tool_errors": sum(kind(s["result"]) == "failed" for s in steps),
             "stopped_by_cap": stopped_by_cap,
         },

@@ -38,6 +38,13 @@ def test_approval_policies():
     assert re_.approver_for("reject_duplicates")(pending) == {"a": "approve", "d": "reject"}
 
 
+def test_recordings_drop_search_snippets():
+    run = {"trajectory": [{"tool": "search_similar_issues", "args": {}, "id": "s",
+                           "result": json.dumps([{"rank": 1, "number": 10, "title": "T", "snippet": "secret body"}])}]}
+    hit = json.loads(re_.redact(run)["trajectory"][0]["result"])[0]
+    assert hit["snippet"] == "<11 chars omitted>" and hit["title"] == "T"
+
+
 def test_recordings_drop_issue_bodies(ws):
     run = recorded_run(ws, "approve_all")
     body = json.loads(run["trajectory"][0]["result"])["body"]

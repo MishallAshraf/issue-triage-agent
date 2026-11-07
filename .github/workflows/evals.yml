@@ -46,6 +46,8 @@ jobs:
           LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL }}
           TRIAGE_MODEL: ${{ vars.TRIAGE_MODEL }}
           JUDGE_MODEL: ${{ vars.JUDGE_MODEL }}
+          DUPLICATE_MODEL: ${{ vars.DUPLICATE_MODEL }}
+          SEARCH_METHOD: ${{ vars.SEARCH_METHOD }}
         run: python -m evals.run_evals --live
 
       - name: Upload recordings from a live run

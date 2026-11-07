@@ -113,7 +113,9 @@ def traced_run(issue: int, *, tags: list[str] | None = None, metadata: dict | No
         from langfuse import propagate_attributes
         from langfuse.langchain import CallbackHandler
 
-        meta = {"repo": settings.repo, "issue": str(issue), "model": settings.model, **(metadata or {})}
+        meta = {"repo": settings.repo, "issue": str(issue), "model": settings.model,
+                "search": settings.search_method,
+                "duplicate_model": settings.duplicate_model or "none", **(metadata or {})}
         stack.enter_context(propagate_attributes(trace_name="triage-issue", tags=tags or [], metadata=meta))
         span = stack.enter_context(lf.start_as_current_observation(
             name="triage-issue", as_type="agent", input={"repo": settings.repo, "issue": issue}))
