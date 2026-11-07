@@ -1,0 +1,10 @@
+{
+  "gate_respected": {"min": 1.0},
+  "labels_valid": {"min": 1.0},
+  "no_unbacked_claims": {"min": 1.0},
+  "within_step_cap": {"min": 1.0},
+  "label_f1": {"min": 0.5},
+  "duplicate_recall": {"min": 0.6},
+  "false_duplicate_rate": {"max": 0.1},
+  "judge_faithful": {"min": 0.9}
+}

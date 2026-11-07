@@ -1,0 +1,54 @@
+name: evals
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Run the agent live (uses API keys from repo secrets)"
+        type: boolean
+        default: false
+
+jobs:
+  test-and-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt && pip install -e . --no-deps
+
+      - name: Unit tests (graph control flow, approval gate, checks)
+        run: pytest -q
+
+      - name: Eval gate on recorded runs (no API calls)
+        if: ${{ !inputs.live }}
+        run: python -m evals.run_evals
+
+      - name: Fetch issues for a live run
+        if: ${{ inputs.live }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -m triage.data
+
+      - name: Live eval run
+        if: ${{ inputs.live }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST }}
+          TRIAGE_MODEL: ${{ vars.TRIAGE_MODEL }}
+        run: python -m evals.run_evals --live
+
+      - name: Upload recordings from a live run
+        if: ${{ inputs.live && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: recordings
+          path: evals/recordings/

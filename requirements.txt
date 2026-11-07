@@ -1,0 +1,10 @@
+httpx==0.28.1
+langchain-anthropic==1.7.10
+langchain-core==1.7.6
+langchain-openai==1.7.4
+langfuse==5.2.0
+langgraph==1.2.20
+pydantic==2.14.3
+pytest==9.2.0
+python-dotenv==1.2.4
+rank-bm25==0.2.2

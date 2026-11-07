@@ -1,0 +1,28 @@
+{"issue": 568, "expected_labels": ["enhancement"], "duplicate_of": 495, "policy": "approve_all"}
+{"issue": 1589, "expected_labels": ["enhancement"], "duplicate_of": 1586, "policy": "approve_all"}
+{"issue": 3306, "expected_labels": [], "duplicate_of": 3181, "policy": "reject_duplicates"}
+{"issue": 3367, "expected_labels": [], "duplicate_of": 3365, "policy": "approve_all"}
+{"issue": 10494, "expected_labels": ["bug"], "duplicate_of": 9187, "policy": "approve_all"}
+{"issue": 12886, "expected_labels": ["enhancement"], "duplicate_of": 12885, "policy": "reject_duplicates"}
+{"issue": 16847, "expected_labels": ["enhancement", "language: typescript"], "duplicate_of": 16842, "policy": "approve_all"}
+{"issue": 16848, "expected_labels": ["enhancement", "language: python"], "duplicate_of": 16846, "policy": "approve_all"}
+{"issue": 6822, "expected_labels": ["devrel"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 14950, "expected_labels": ["bug"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 16049, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 16294, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 16515, "expected_labels": ["documentation", "enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 16521, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "reject_all"}
+{"issue": 16525, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 16665, "expected_labels": ["bug", "language: python"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17118, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17127, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17132, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17496, "expected_labels": ["bug", "phoenix-cloud"], "duplicate_of": null, "policy": "reject_all"}
+{"issue": 17564, "expected_labels": ["bug"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17575, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17602, "expected_labels": ["bug"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17622, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17625, "expected_labels": ["bug"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17627, "expected_labels": ["enhancement"], "duplicate_of": null, "policy": "reject_all"}
+{"issue": 17633, "expected_labels": ["bug"], "duplicate_of": null, "policy": "approve_all"}
+{"issue": 17652, "expected_labels": ["bug"], "duplicate_of": null, "policy": "approve_all"}
