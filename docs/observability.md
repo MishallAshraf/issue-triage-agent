@@ -10,13 +10,14 @@ triage-issue                      agent observation (input: repo + issue, output
 │   ├── agent                     one per model turn
 │   │   └── ChatOpenAI / ChatAnthropic   prompt, response, tool calls, tokens, cost, latency
 │   ├── tools                     get_issue, search_similar_issues, list_labels, writes
+│   ├── check_duplicates          the stronger model's verdict on each proposed duplicate
 │   ├── approval                  the pause for a human; the resume carries the answers
 │   └── ...
 └── scores                        attached to the trace (see below)
 ```
 
 - **Run summary (output of the root observation):** the final message, the outbox, which writes ran, which were rejected, and which tool calls failed. It's built from the run itself, not rebuilt from the nested spans ([ADR 0006](adr/0006-run-summary-on-the-trace.md)).
-- **Metadata:** repo, issue number, model, plus the run's counts: `steps`, `tool_calls`, `writes_approved`, `writes_rejected`, `tool_errors`, `stopped_by_cap`. These are on every run, CLI included, so they work as filters even without eval scores. **Tags:** `cli` for terminal runs; `eval` plus the approval policy (`approve_all`, `reject_all`, `reject_duplicates`) for eval runs.
+- **Metadata:** repo, issue number, model, search method, duplicate-check model, plus the run's counts: `steps`, `tool_calls`, `writes_approved`, `writes_rejected`, `duplicates_blocked_by_check`, `tool_errors`, `stopped_by_cap`. These are on every run, CLI included, so they work as filters even without eval scores. **Tags:** `cli` for terminal runs; `eval` plus the approval policy (`approve_all`, `reject_all`, `reject_duplicates`) for eval runs.
 - **Masking:** emails and token-like strings are replaced before anything is sent ([ADR 0003](adr/0003-mask-before-tracing.md)).
 - The CLI prints the trace id at the end, and each eval recording stores its `trace_id`, so a bad case in a report links straight to its trace.
 

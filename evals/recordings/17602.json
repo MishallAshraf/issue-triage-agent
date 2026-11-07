@@ -6,52 +6,36 @@
    "number": 17602,
    "labels": [
     "bug",
-    "c/prompts",
-    "language: typescript"
+    "c/prompts"
    ]
-  },
-  {
-   "tool": "post_comment",
-   "number": 17602,
-   "body": "Thank you for reporting this issue! We will look into it."
   }
  ],
  "approvals": [
   {
    "pending": [
     {
-     "id": "call_yCDcmpEjQSLyv5XUG7gRNyAC",
+     "id": "call_js4qYkc2eufuWCC6qWEw9OMc",
      "tool": "apply_labels",
      "args": {
       "number": 17602,
       "labels": [
        "bug",
-       "c/prompts",
-       "language: typescript"
+       "c/prompts"
       ]
-     }
-    },
-    {
-     "id": "call_bORCibFNLgORABCl1TucXEFH",
-     "tool": "post_comment",
-     "args": {
-      "number": 17602,
-      "body": "Thank you for reporting this issue! We will look into it."
      }
     }
    ],
    "answer": {
-    "call_yCDcmpEjQSLyv5XUG7gRNyAC": "approve",
-    "call_bORCibFNLgORABCl1TucXEFH": "approve"
+    "call_js4qYkc2eufuWCC6qWEw9OMc": "approve"
    }
   }
  ],
- "steps": 5,
+ "steps": 6,
  "stopped_by_cap": false,
- "final": "I triaged issue #17602 by applying the following labels: **bug**, **c/prompts**, and **language: typescript**. Additionally, I posted a comment thanking the user for reporting the issue.",
+ "final": "I triaged issue #17602 titled \"[BUG]: TypeScript toSDK sends a prompt's Extra Body as a literal extra_body request field.\" \n\n- I identified the relevant labels and applied the labels \"bug\" and \"c/prompts\" to the issue.\n- I found similar issues, but none were duplicates of this one.\n\nIf you need further assistance, feel free to ask!",
  "trajectory": [
   {
-   "id": "call_rRFh7vDsnW8YBDJECR4tV3Fw",
+   "id": "call_zJ7HF7nY9Kg5eGq3QgBcR6az",
    "tool": "get_issue",
    "args": {
     "number": 17602
@@ -59,46 +43,62 @@
    "result": "{\"number\": 17602, \"title\": \"[BUG]: TypeScript toSDK sends a prompt's Extra Body as a literal extra_body request field\", \"state\": \"open\", \"created_at\": \"2026-11-04T06:57:52Z\", \"body\": \"<2523 chars omitted>\"}"
   },
   {
-   "id": "call_Q6yvtmXgQXZkyveMD80O4teY",
+   "id": "call_rdUkd41eHOfHr6Io4ir5tMYX",
    "tool": "list_labels",
    "args": {},
    "result": "{\"agent-in-progress\": \"An agent is currently working on this issue\", \"agents\": \"\", \"autorelease: pending\": \"\", \"autorelease: tagged\": \"\", \"backlog\": \"\", \"blocked\": \"\", \"bug\": \"Something isn't working\", \"c/agents\": \"related to the in-browser or terminal agent for phoenix data\", \"c/annotations\": \"\", \"c/api\": \"\", \"c/auth\": \"\", \"c/cli\": \"CLI (@arizeai/phoenix-cli)\", \"c/client\": \"\", \"c/datasets\": \"\", \"c/dx\": \"Developer experience\", \"c/evals\": \"\", \"c/experiments\": \"\", \"c/filters\": \"\", \"c/helm\": \"\", \"c/infra\": \"\", \"c/integrations\": \"\", \"c/mcp\": \"\", \"c/metrics\": \"\", \"c/otel\": \"\", \"c/playground\": \"prompt playground and llm provider support\", \"c/prompts\": \"prompt management, prompts SDK\", \"c/rbac\": \"role based access control\", \"c/server\": \"Server implementation\", \"c/sessions\": \"\", \"c/traces\": \"\", \"c/ui\": \"\", \"c/usability\": \"UI or product problems that create friction or block task completion.\", \"cannot reproduce\": \"A bug that cannot be reproduced\", \"cla-escalated\": \"PR blocked on CLA signature with no contributor response after follow-up\", \"cla-unsigned\": \"The CLA is not signed; the factory closes the PR a day after reminding\", \"cleanup\": \"\", \"dependencies\": \"Pull requests that update a dependency file\", \"design\": \"design needs to be tasked out to a designer\", \"devrel\": \"\", \"DO NOT MERGE\": \"\", \"documentation\": \"Improvements or additions to documentation\", \"duplicate\": \"This issue or pull request already exists\", \"education\": \"Educational content creation, planning etc.\", \"enhancement\": \"New feature or request\", \"factory\": \"Send this issue through the factory (factory/README.md)\", \"factory-approved\": \"The factory review recommends approving\", \"factory-close\": \"The factory review recommends closing\", \"factory-finish\": \"\", \"factory-finished\": \"The factory pushed commits to this pull request\", \"factory-preview\": \"Deploy a seeded preview of this PR (Factory Preview)\", \"factory-request-changes\": \"The factory review recommends requesting changes\", \"factory-review\": \"to be reviewed by the factory\", \"Feature\": \"\", \"feature branch\": \"a feature branch that consolidates multiple features into a single commit on main\", \"good first issue\": \"Good for newcomers\", \"good student issue\": \"A good issue for students taking CS146S\", \"good-agent-issue\": \"Good for an AI agent to pick up\", \"help wanted\": \"Extra attention is needed\", \"instrumentation\": \"openinference instrumentations to various open-source projects\", \"integration\": \"Integration with third parties, platforms\", \"integration: langchain\": \"Involves integration with langchain\", \"invalid\": \"This doesn't seem right\", \"javascript\": \"Pull requests that update Javascript code\", \"language: python\": \"Issues with python as the primary language of use\", \"language: typescript\": \"Issue using the platform with typescript\", \"lgtm\": \"This PR has been approved by a maintainer\", \"multi-modal\": \"related to image / video / audio\", \"multimodal\": \"\", \"needs attention\": \"A Phoenix support team should take a look\", \"needs information\": \"Needs more info from the issuer\", \"onboarding\": \"\", \"phoenix-cloud\": \"Issues related to Arize-hosted Phoenix\", \"priority: high\": \"\", \"priority: highest\": \"\", \"priority: low\": \"\", \"priority: medium\": \"\", \"python\": \"Pull requests that update Python code\", \"python:uv\": \"Pull requests that update python:uv code\", \"question\": \"Further information is requested\", \"railway-dev\": \"Filed from the Phoenix team's internal Railway deployment\", \"roadmap\": \"\", \"size:L\": \"This PR changes 100-499 lines, ignoring generated files.\", \"size:M\": \"This PR changes 30-99 lines, ignoring generated files.\", \"size:S\": \"This PR changes 10-29 lines, ignoring generated files.\", \"size:XL\": \"This PR changes 500-999 lines, ignoring generated files.\", \"size:XS\": \"This PR changes 0-9 lines, ignoring generated files.\", \"size:XXL\": \"This PR changes 1000+ lines, ignoring generated files.\", \"stale\": \"Issue has not had recent activity or appears to be solved. Stale issues will be automatically closed\", \"topic: JSON UI\": \"* UI from JSON output * UI for JSON input * Schemas to define/constrain/validate those inputs.\", \"triage\": \"issues that need triage\", \"user request\": \"\", \"v/5\": \"for version 5\", \"wontfix\": \"This will not be worked on\"}"
   },
   {
-   "id": "call_aLN1deTSeIUsPCp6ywpvGPEs",
+   "id": "call_LTXHbBk6SS1bT4SqtGiUDvdo",
    "tool": "search_similar_issues",
    "args": {
     "query": "TypeScript toSDK sends a prompt's Extra Body as a literal extra_body request field"
    },
-   "result": "[{\"number\": 17492, \"title\": \"[BUG]: TypeScript prompt conversion sends Anthropic system instructions as user messages\", \"state\": \"closed\", \"score\": 20.97}, {\"number\": 17269, \"title\": \"[BUG]: Python client drops extra_body when formatting an Anthropic prompt\", \"state\": \"closed\", \"score\": 18.28}, {\"number\": 17282, \"title\": \"[BUG]: toSDK drops description, default and other fields next to anyOf in tool and response schemas\", \"state\": \"closed\", \"score\": 16.87}, {\"number\": 17559, \"title\": \"[BUG]: TypeScript prompt variables interpret dollar sequences as replacement patterns\", \"state\": \"open\", \"score\": 16.68}, {\"number\": 17244, \"title\": \"[BUG]: toSDK sends tool-call arguments as a string to Anthropic and the AI SDK\", \"state\": \"closed\", \"score\": 16.58}]"
+   "result": "[{\"rank\": 1, \"number\": 17492, \"title\": \"[BUG]: TypeScript prompt conversion sends Anthropic system instructions as user messages\", \"state\": \"closed\", \"snippet\": \"<181 chars omitted>\"}, {\"rank\": 2, \"number\": 17269, \"title\": \"[BUG]: Python client drops extra_body when formatting an Anthropic prompt\", \"state\": \"closed\", \"snippet\": \"<195 chars omitted>\"}, {\"rank\": 3, \"number\": 17282, \"title\": \"[BUG]: toSDK drops description, default and other fields next to anyOf in tool and response schemas\", \"state\": \"closed\", \"snippet\": \"<202 chars omitted>\"}, {\"rank\": 4, \"number\": 17559, \"title\": \"[BUG]: TypeScript prompt variables interpret dollar sequences as replacement patterns\", \"state\": \"open\", \"snippet\": \"<200 chars omitted>\"}, {\"rank\": 5, \"number\": 17244, \"title\": \"[BUG]: toSDK sends tool-call arguments as a string to Anthropic and the AI SDK\", \"state\": \"closed\", \"snippet\": \"<197 chars omitted>\"}]"
   },
   {
-   "id": "call_yCDcmpEjQSLyv5XUG7gRNyAC",
+   "id": "call_895b9uwJIhnXw8JIfVnBnsZQ",
+   "tool": "get_issue",
+   "args": {
+    "number": 17492
+   },
+   "result": "{\"number\": 17492, \"title\": \"[BUG]: TypeScript prompt conversion sends Anthropic system instructions as user messages\", \"state\": \"closed\", \"created_at\": \"2026-10-31T07:25:02Z\", \"body\": \"<1793 chars omitted>\", \"labels\": [\"triage\"]}"
+  },
+  {
+   "id": "call_QdZRySeqjxh2jUKJeyYcxwZo",
+   "tool": "get_issue",
+   "args": {
+    "number": 17269
+   },
+   "result": "{\"number\": 17269, \"title\": \"[BUG]: Python client drops extra_body when formatting an Anthropic prompt\", \"state\": \"closed\", \"created_at\": \"2026-10-26T16:15:30Z\", \"body\": \"<1713 chars omitted>\", \"labels\": [\"triage\"]}"
+  },
+  {
+   "id": "call_QrhOt69t7NSPl2tktgYr9exy",
+   "tool": "get_issue",
+   "args": {
+    "number": 17282
+   },
+   "result": "{\"number\": 17282, \"title\": \"[BUG]: toSDK drops description, default and other fields next to anyOf in tool and response schemas\", \"state\": \"closed\", \"created_at\": \"2026-10-26T23:56:37Z\", \"body\": \"<1925 chars omitted>\", \"labels\": [\"triage\"]}"
+  },
+  {
+   "id": "call_js4qYkc2eufuWCC6qWEw9OMc",
    "tool": "apply_labels",
    "args": {
     "number": 17602,
     "labels": [
      "bug",
-     "c/prompts",
-     "language: typescript"
+     "c/prompts"
     ]
    },
-   "result": "Applied labels ['bug', 'c/prompts', 'language: typescript'] to #17602."
-  },
-  {
-   "id": "call_bORCibFNLgORABCl1TucXEFH",
-   "tool": "post_comment",
-   "args": {
-    "number": 17602,
-    "body": "Thank you for reporting this issue! We will look into it."
-   },
-   "result": "Posted a comment on #17602."
+   "result": "Applied labels ['bug', 'c/prompts'] to #17602."
   }
  ],
  "model": "openrouter:openai/gpt-4o-mini",
- "trace_id": "2cbbc0fc6f932590627679d9319e1ba9",
+ "search": "hybrid",
+ "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
+ "trace_id": "36fa6bf847c092050686cee5e7f7b1b0",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and posting a comment. There are no discrepancies between the summary and the tool calls.",
+  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and the identification of similar issues without claiming any duplicates. There are no discrepancies between the summary and the tool calls.",
   "verdict": "PASS"
  }
 }

@@ -11,3 +11,5 @@ Short notes on the choices that shape this repo: what I chose, why, and what I g
 | [0005](0005-ci-replays-recordings.md) | CI re-scores recorded runs; live runs are manual |
 | [0006](0006-run-summary-on-the-trace.md) | The code that ran the agent states what happened, on the trace |
 | [0007](0007-tracing-fails-open.md) | Tracing fails open: it never breaks a run |
+| [0008](0008-hybrid-search.md) | Hybrid search (BM25 + vectors), chosen by measuring search on its own |
+| [0009](0009-duplicate-check-by-a-stronger-model.md) | A stronger model checks every proposed duplicate, in code, before a human sees it |

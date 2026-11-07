@@ -9,15 +9,16 @@ It runs on a snapshot of public issues from [Arize-ai/phoenix](https://github.co
 ```
 agent ──(read tool calls only)──> tools ──> agent
   │
-  ├──(any write tool call)──> approval  [pauses: interrupt()] ──> tools ──> agent
+  ├──(any write tool call)──> [duplicate check] ──> approval  [pauses: interrupt()] ──> tools ──> agent
   │
   └──(no tool calls, or step cap)──> end
 ```
 
 - **LangGraph** state graph. Read tools (`get_issue`, `search_similar_issues`, `list_labels`) run freely. Write tools (`apply_labels`, `mark_duplicate`, `post_comment`) pause the graph with `interrupt()` until a person answers approve/reject for each call. A rejected call is never run; the agent is told so and has to carry on.
 - **Guards in the tools, not just the prompt.** Labels that don't exist are refused. The search only sees issues opened *before* the one being triaged, so the agent can't "find" a later issue that was closed as a duplicate of this one. The triaged issue's own labels are hidden. A step cap stops a looping agent.
-- **Search** is BM25 over titles and bodies.
-- **Model** is set by `TRIAGE_MODEL`, e.g. `openai:gpt-4o-mini` or `anthropic:<model>`.
+- **Search** is hybrid: BM25 (keywords) and a small local embedding model (meaning), merged by reciprocal rank fusion. It was chosen by measuring search on its own first (`python -m evals.retrieval`, no LLM): with the agent's own queries, BM25 found 6 of 8 known originals in the top 5, hybrid 8 of 8. `SEARCH_METHOD=bm25` switches back.
+- **Duplicate check by a stronger model.** The agent runs on a small model that finds candidates well but judges them unevenly. Every `mark_duplicate` it proposes is first checked by a stronger model (`DUPLICATE_MODEL`, currently Claude Sonnet 5.5) that reads both full issues. Proposals it judges different are dropped before a human is asked; the rest still need approval. This raised duplicate recall from 5 to 6 of 8 without adding false duplicates, without tuning the prompt to the eval set.
+- **Models** are set by `TRIAGE_MODEL`, `DUPLICATE_MODEL` and `JUDGE_MODEL`, as `openai:<model>`, `anthropic:<model>` or `openrouter:<model>`.
 
 ## Observing it
 
@@ -51,7 +52,7 @@ Recordings drop issue bodies; the issue cache itself is gitignored, since issue 
 
 ## Design decisions
 
-The main choices, with the reasons and what they cost, are in [docs/adr/](docs/adr/README.md): the approval gate, search that only sees earlier issues, masking before tracing, the narrow calibrated judge, replaying recordings in CI, the run summary on each trace, and tracing that fails open.
+The main choices, with the reasons and what they cost, are in [docs/adr/](docs/adr/README.md): the approval gate, search that only sees earlier issues, masking before tracing, the narrow calibrated judge, replaying recordings in CI, the run summary on each trace, tracing that fails open, hybrid search, and the duplicate check. [docs/experiments.md](docs/experiments.md) records every live run: what changed, what it showed, and what went wrong.
 
 ## Run it
 
@@ -66,6 +67,7 @@ python -m evals.build_golden        # rebuild the golden set from the snapshot
 python -m evals.run_evals --live    # run, record, score, judge
 python -m evals.run_evals           # re-score recordings (what CI does)
 python -m evals.run_evals --save-baseline   # keep these numbers as the baseline
+python -m evals.retrieval           # search alone: BM25 vs vectors vs hybrid, recall@k (no LLM)
 python -m evals.label_probes        # label the judge probes by hand
 python -m evals.calibrate           # judge vs human: Cohen's kappa
 pytest -q
@@ -76,4 +78,4 @@ pytest -q
 - The golden set is small (28 cases, only 8 duplicates), so the metrics are rough; one case is several percentage points. Phoenix has 30+ issues closed as duplicates, but only 11 name the original, and I didn't guess the rest.
 - The snapshot holds the latest ~600 issues plus the duplicate pairs, so for older duplicates the search has fewer distractors than it would in the full repo.
 - Duplicate ground truth only covers issues maintainers explicitly marked. An "unmarked" pair might still be a duplicate, so the false-duplicate rate is an upper bound.
-- BM25 misses duplicates written in different words; embeddings would be the next thing to try.
+- Retrieval is measured on 8 pairs, so the comparison between vectors and hybrid is within one pair. The clear finding is BM25 missing rewordings of short agent queries.
