@@ -1,0 +1,15 @@
+{
+  "model": "openrouter:openai/gpt-4o-mini",
+  "n": 28,
+  "metrics": {
+    "gate_respected": 1.0,
+    "labels_valid": 1.0,
+    "no_unbacked_claims": 1.0,
+    "within_step_cap": 1.0,
+    "label_f1": 0.6012820512820511,
+    "duplicate_recall": 0.625,
+    "false_duplicate_rate": 0.05,
+    "judge_faithful": 1.0,
+    "mean_steps": 5.035714285714286
+  }
+}
