@@ -90,7 +90,7 @@ def live(cases: list[dict], judge_on: bool) -> None:
             res = check_run(run, case, set(snap.labels))
             if judge:
                 v = judge(run["trajectory"], run["final"], callbacks=tr.callbacks)
-                run["judge"] = v.model_dump()
+                run["judge"] = v.model_dump() | {"model": settings.judge_model}
                 tr.score("faithful", 1.0 if v.verdict == "PASS" else 0.0, v.reasoning)
             tr.score("gate_respected", float(res["gate_respected"]))
             if res["labels"]:
@@ -103,6 +103,57 @@ def live(cases: list[dict], judge_on: bool) -> None:
         print(f"  #{case['issue']}: {res['duplicate']}, label F1 {f1}, "
               f"steps {res['steps']}" + (f", judge {run['judge']['verdict']}" if judge else ""), file=sys.stderr)
     tracing.flush()
+
+
+def hydrate(trajectory: list[dict], snap) -> list[dict]:
+    """Undo `redact` using the issue cache: put issue bodies and search snippets back."""
+    from triage.tools import _snippet
+
+    out = []
+    for s in trajectory:
+        s = dict(s)
+        r = s["result"] or ""
+        if s["tool"] == "get_issue" and r.startswith("{"):
+            d = json.loads(r)
+            if d.get("number") in snap.issues:
+                d["body"] = snap.issues[d["number"]].body[:3000]
+            s["result"] = json.dumps(d)
+        elif s["tool"] == "search_similar_issues" and r.startswith("["):
+            hits = json.loads(r)
+            for h in hits:
+                if "snippet" in h and h.get("number") in snap.issues:
+                    h["snippet"] = _snippet(snap.issues[h["number"]].body)
+            s["result"] = json.dumps(hits)
+        out.append(s)
+    return out
+
+
+def rejudge(cases: list[dict]) -> None:
+    """Judge the saved recordings again with JUDGE_MODEL, keeping the agent's runs as they were.
+
+    Recordings have issue bodies and search snippets removed, but a summary can describe
+    what an issue is about, and the judge needs that text to check it. So the removed text
+    is restored from the local issue cache first (needs `python -m triage.data`). This is
+    exact: the tools built those results from the same snapshot.
+    """
+    from evals.judge import FaithfulnessJudge
+    from triage.config import settings
+    from triage.data import load
+    from triage.llm import make_model
+
+    snap = load()
+    judge = FaithfulnessJudge(make_model(settings.judge_model))
+    for case in cases:
+        path = RECORDINGS / f"{case['issue']}.json"
+        if not path.exists():
+            continue
+        run = json.loads(path.read_text(encoding="utf-8"))
+        before = run.get("judge", {}).get("verdict")
+        v = judge(hydrate(run["trajectory"], snap), run["final"])
+        run["judge"] = v.model_dump() | {"model": settings.judge_model}
+        path.write_text(json.dumps(run, indent=1), encoding="utf-8")
+        note = "" if before == v.verdict else f"  (was {before})"
+        print(f"  #{case['issue']}: judge {v.verdict}{note}", file=sys.stderr)
 
 
 def score(cases: list[dict], repo_labels: set[str]) -> dict:
@@ -185,9 +236,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-judge", action="store_true", help="skip the LLM judge in live mode")
     ap.add_argument("--only", type=int, nargs="*", help="issue numbers to run")
     ap.add_argument("--save-baseline", action="store_true", help="store this run's numbers in evals/baseline.json")
+    ap.add_argument("--rejudge", action="store_true",
+                    help="re-run only the judge (JUDGE_MODEL) on the saved recordings, without rerunning the agent")
     args = ap.parse_args(argv)
     if args.save_baseline and args.only:
         ap.error("--save-baseline needs the full golden set, not --only")
+    if args.rejudge and args.live:
+        ap.error("--live already judges; use --rejudge on its own")
 
     cases = load_jsonl(HERE / "golden.jsonl")
     if args.only:
@@ -195,6 +250,8 @@ def main(argv: list[str] | None = None) -> int:
     meta = json.loads((HERE / "golden_meta.json").read_text(encoding="utf-8"))
     if args.live:
         live(cases, judge_on=not args.no_judge)
+    if args.rejudge:
+        rejudge(cases)
 
     summary = score(cases, set(meta["labels"]))
     fails = gate(summary, json.loads((HERE / "thresholds.json").read_text(encoding="utf-8")))

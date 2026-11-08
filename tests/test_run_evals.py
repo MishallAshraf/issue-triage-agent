@@ -91,3 +91,13 @@ def test_baseline_round_trip(tmp_evals):
 def test_partial_runs_cannot_overwrite_the_baseline():
     with pytest.raises(SystemExit):
         re_.main(["--only", "12", "--save-baseline"])
+
+
+def test_hydrate_restores_exactly_what_redact_removed(ws, snap):
+    original = json.loads(dumps_run(run_triage(ws, ScriptedModel(script=[
+        AIMessage("", tool_calls=[call("get_issue", {"number": 12}, "r1"),
+                                  call("search_similar_issues", {"query": "traces blank"}, "r2")]),
+        AIMessage("Done.")]), lambda p: "approve")))
+    redacted = re_.redact(json.loads(json.dumps(original)))
+    assert redacted["trajectory"] != original["trajectory"]
+    assert re_.hydrate(redacted["trajectory"], snap) == original["trajectory"]

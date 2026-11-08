@@ -43,7 +43,8 @@ def render(trajectory: list[dict], final: str) -> str:
 
 class FaithfulnessJudge:
     def __init__(self, llm):
-        self.llm = llm.with_structured_output(Verdict)
+        # JSON-schema mode works across OpenRouter's providers (Claude refuses forced tool choice).
+        self.llm = llm.with_structured_output(Verdict, method="json_schema")
 
     def __call__(self, trajectory: list[dict], final: str, callbacks: list | None = None) -> Verdict:
         return self.llm.invoke([("system", RUBRIC), ("human", render(trajectory, final))],
