@@ -108,7 +108,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "7b217f22b332a467429bfc838c8e1dae",
  "judge": {
-  "reasoning": "The summary incorrectly states that the duplicate marking was rejected, which implies that the action was attempted and failed, while the tool calls show that the action was never called. This discrepancy indicates a lack of faithfulness in the summary.",
-  "verdict": "FAIL"
+  "reasoning": "The summary accurately reports that the duplicate marking of #12886 against #12885 was rejected, and that labels 'enhancement' and 'c/sessions' were applied, which matches the tool results. No false claims or omissions.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

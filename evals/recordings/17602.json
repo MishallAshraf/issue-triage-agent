@@ -98,7 +98,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "36fa6bf847c092050686cee5e7f7b1b0",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and the identification of similar issues without claiming any duplicates. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary says labels 'bug' and 'c/prompts' were applied, which matches the successful apply_labels result. It also says similar issues were found but none were duplicates, and no duplicate was claimed or acted on. No rejected or failed write is omitted.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

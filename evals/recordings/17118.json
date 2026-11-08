@@ -130,7 +130,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "67885b95c48ba9d6ad40f2c2d7433174",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and posting a comment. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary says labels enhancement, c/evals, c/server were applied to #17118 and a thank-you comment was posted. Both tool calls succeeded with exactly those labels and that issue number, and no rejection or error occurred.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

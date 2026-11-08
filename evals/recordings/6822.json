@@ -145,7 +145,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "eade944e90d7587bcaf45cccd140ea4e",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken, including the successful application of labels and posting a comment. It correctly states that no duplicate was marked due to the issues being different, which aligns with the tool call results.",
-  "verdict": "PASS"
+  "reasoning": "The summary accurately reports that labels 'enhancement' and 'c/sessions' were applied and a comment was posted, all of which succeeded. It also correctly states that no duplicate was marked, since mark_duplicate was not run because the issues were judged different.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

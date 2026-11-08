@@ -9,7 +9,7 @@
     "label_f1": 0.5564102564102563,
     "duplicate_recall": 0.75,
     "false_duplicate_rate": 0.05,
-    "judge_faithful": 0.9285714285714286,
+    "judge_faithful": 1.0,
     "mean_steps": 7.035714285714286
   }
 }

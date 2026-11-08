@@ -100,7 +100,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "7b0f0f41e82354475cd227f756abff01",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken, including the successful application of labels and the relationship to issue #16402. However, it incorrectly implies that the duplicate check was run and that the issues were determined to be related, while the tool call indicates that the duplicate check was not run and that they were judged to be different problems. This discrepancy leads to a failure in faithfulness.",
-  "verdict": "FAIL"
+  "reasoning": "The summary correctly reports that labels bug and c/server were applied (succeeded) and that the duplicate marking against #16402 was judged not a duplicate (not run). It does not claim the duplicate action succeeded, and the numbers match the tool calls.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

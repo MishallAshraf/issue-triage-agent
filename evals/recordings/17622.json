@@ -98,7 +98,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "f533f732da0e58c227d69bbeee33b0f0",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels to issue #17622. It does not claim any actions that were not completed or misrepresent the results of the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The apply_labels call succeeded with exactly the labels the summary names (enhancement, c/infra) on #17622. The summary's claim that no duplicates were found is consistent with the similar-issue results, which were about Railway but different topics. Nothing in it contradicts the tool results.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

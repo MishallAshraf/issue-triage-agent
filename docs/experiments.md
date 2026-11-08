@@ -31,6 +31,13 @@ In runs 3 and 4 the judge failed three summaries that were faithful:
 
 So real faithfulness in run 4 was 100%, not 93%. This is why the judge is calibrated against hand labels (`python -m evals.calibrate`) before its numbers are trusted.
 
+**Calibration.** 34 probes: 16 labelled by hand, 18 by Claude on the same rules (each probe records which). Both `gpt-4o-mini` and Claude Sonnet 5.5 agreed with all 16 human labels (kappa 1.00); on all 34, `gpt-4o-mini` scored 0.93 and Sonnet 1.00. Notes from doing it:
+- One human label was a slip: probe 14 had the same pattern as probe 4 but was marked the opposite way. Both judges flagged it, and on review it was corrected to FAIL. Calibration checks the labels too.
+- `gpt-4o-mini` gave a different verdict on probe 11 in two identical calibration runs. Sonnet was stable.
+- The probe bank doesn't separate the two judges; the real runs did. Harder probes, built from the real judge mistakes above, are the next step.
+
+**Switching the judge.** `JUDGE_MODEL` is now Claude Sonnet 5.5. `python -m evals.run_evals --rejudge` re-judged run 4's recordings without rerunning the agent: the two false failures passed, and judge-faithful went from 93% to 100%. A first attempt failed #10494, because recordings have issue text removed and the summary described what the original issue was about; the re-judge now restores the text from the local cache before judging.
+
 ## Open issues
 - The agent sometimes skips `apply_labels` after proposing a duplicate (10 of 10 such runs in run 3, 4 of 15 in run 4). That's a behaviour bug, not tuning, and the obvious next fix.
 - 8 duplicate cases is a small sample: one case is 12.5 points, and the same model at temperature 0 still made different calls on the same issue between runs (#1589, #16847). Repeating each case several times would firm up the numbers.

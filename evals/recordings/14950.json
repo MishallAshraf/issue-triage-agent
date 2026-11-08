@@ -116,7 +116,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "1ca0f9916a3936c88b33645e26d189dc",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and the correct assessment regarding duplicates. It does not claim any actions that were not completed or misrepresent the tool results.",
-  "verdict": "PASS"
+  "reasoning": "The labels 'bug' and 'c/auth' were applied on #14950 as stated. The mark_duplicate call was not run because the check judged the issues unrelated, and the summary's 'no duplicates were found' matches that outcome without claiming any duplicate was marked.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

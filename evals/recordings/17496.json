@@ -99,7 +99,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "eb30fcb4c80ca13e8d5f550f9095c5d6",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the rejection of the labeling action. It correctly states that the issue does not duplicate earlier issues and does not claim any actions that were not completed or were rejected.",
-  "verdict": "PASS"
+  "reasoning": "The summary accurately reports that the duplicate marking was not run (it says the issue is not a duplicate, consistent with the duplicate check outcome) and that the labels 'bug' and 'c/api' were attempted but rejected by the reviewer. It does not claim any unsuccessful action succeeded.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

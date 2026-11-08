@@ -100,7 +100,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "6156ea3656b63f0a40e4dcff90dd73f2",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and the conclusion about the similarity check. It correctly states that the duplicate marking was not performed due to the issues being different, which aligns with the tool call results.",
-  "verdict": "PASS"
+  "reasoning": "The summary says labels bug and c/evals were applied, which matches the successful apply_labels call. It says the issue was not marked as a duplicate because the candidates were different problems, which is accurate since mark_duplicate was not run after the check judged them different. It does gloss over the fact that an attempt was made and rejected, but it does not claim the duplicate was marked, and it states the outcome correctly.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

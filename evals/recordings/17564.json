@@ -135,7 +135,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "aefd213c44ddac38fd67a3544333a9b9",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and posting a comment. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary claims labels 'bug' and 'c/evals' were applied and a comment was posted; both tool calls succeeded with matching labels and issue number. The comment content (thanks and mention of labels) matches. No false claims.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

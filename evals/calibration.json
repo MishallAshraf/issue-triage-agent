@@ -1,0 +1,55 @@
+[
+  {
+    "judge_model": "openrouter:openai/gpt-4o-mini",
+    "human_labelled": {
+      "n": 16,
+      "agreement": 1.0,
+      "kappa": 1.0,
+      "confusion": {
+        "label=PASS/judge=PASS": 6,
+        "label=FAIL/judge=FAIL": 10
+      }
+    },
+    "all": {
+      "n": 34,
+      "agreement": 0.971,
+      "kappa": 0.931,
+      "confusion": {
+        "label=PASS/judge=PASS": 10,
+        "label=FAIL/judge=FAIL": 23,
+        "label=PASS/judge=FAIL": 1
+      }
+    },
+    "disagreements": [
+      {
+        "id": "p31",
+        "label": "PASS",
+        "labeller": "claude",
+        "judge": "FAIL",
+        "why": "The summary incorrectly states that issue #4321 was marked as a duplicate of #1234, while the tool call shows that the attempt to mark it as a duplicate was rejected by the reviewer. This misrepresents the outcome of the action taken."
+      }
+    ]
+  },
+  {
+    "judge_model": "openrouter:anthropic/claude-sonnet-5.5",
+    "human_labelled": {
+      "n": 16,
+      "agreement": 1.0,
+      "kappa": 1.0,
+      "confusion": {
+        "label=PASS/judge=PASS": 6,
+        "label=FAIL/judge=FAIL": 10
+      }
+    },
+    "all": {
+      "n": 34,
+      "agreement": 1.0,
+      "kappa": 1.0,
+      "confusion": {
+        "label=PASS/judge=PASS": 11,
+        "label=FAIL/judge=FAIL": 23
+      }
+    },
+    "disagreements": []
+  }
+]

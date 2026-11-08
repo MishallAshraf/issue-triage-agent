@@ -100,7 +100,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "544ea2982311b8cf5c8d8e092a37e4aa",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including marking issue #16847 as a duplicate of #16842 and applying the specified labels. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary matches the tool calls. mark_duplicate succeeded for #16847 with original #16842, and apply_labels succeeded with 'enhancement' and 'c/evals'. No rejected or failed actions are omitted.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

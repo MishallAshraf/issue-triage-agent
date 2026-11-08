@@ -127,7 +127,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "bb16cdd3da4a24059200ecaa103cf142",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the triage of issue #17575, the application of the correct labels, and the posting of a comment. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary says the labels 'enhancement' and 'cla-unsigned' were applied and a comment was posted. Both calls succeeded (calls 7 and 8). The summary names no duplicate targets or issue numbers that differ from the tool calls, and it does not claim any rejected action.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

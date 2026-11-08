@@ -97,7 +97,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "15e2c4cde784e2cd76cbd973cc0f7e74",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken, including the triage of issue #17132, the application of labels, and the posting of a comment. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary says the agent applied the labels 'enhancement' and 'c/experiments' to #17132 and posted a thank-you comment. Both tool calls succeeded with matching labels and issue number, and the summary claims nothing else.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

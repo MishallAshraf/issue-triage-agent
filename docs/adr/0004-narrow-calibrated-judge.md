@@ -15,6 +15,12 @@ Most of what matters can be checked with plain code: did writes wait for approva
 - The probes are constructed, because real runs rarely contain enough unfaithful summaries to measure a judge on. They show the judge works on the failure types I know about, not on ones I haven't thought of.
 - Labelling the probes is manual work, and the tool hides the intended label while I answer so it doesn't anchor me.
 
+## Calibration results
+- 16 probes labelled by hand, 18 by Claude on the same rules; reported separately.
+- `gpt-4o-mini`: kappa 1.00 on the human labels, 0.93 on all 34. Claude Sonnet 5.5: 1.00 and 1.00.
+- The probes didn't separate the judges, but live runs did: `gpt-4o-mini` failed three faithful summaries and wasn't stable between identical runs. The judge is now Claude Sonnet 5.5 (`JUDGE_MODEL`), and run 4 was re-judged with it (`--rejudge`).
+- Calibration also caught a labelling slip (probe 14), which was corrected.
+
 ## Alternatives considered
 - **A helpfulness judge ("did the agent get the job done?").** It punishes correct behaviour. When a reviewer rejects a write, the right outcome is an agent that stops and says so, and a helpfulness judge would score that low. The golden set rejects writes on purpose, so this would mark the agent down exactly when it behaves well. Whether the agent made the *right* decision is a separate question, answered by the golden set's ground truth, not by the judge.
 - **One judge scoring everything (1 to 10 overall quality).** Hard to calibrate, and hard to act on a low score.

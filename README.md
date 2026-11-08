@@ -38,9 +38,35 @@ Two layers of checks:
    - the step cap wasn't hit
 2. **LLM judge** (`evals/judge.py`) for one narrow question: is the final summary faithful to what actually happened? The rule check catches the obvious cases; on the probe bank it flags 12 of the 23 unfaithful summaries and none of the faithful ones. It misses wrong issue numbers and quietly omitted rejections, which is what the judge is for.
 
-**The judge is calibrated before it's trusted.** `evals/probes.jsonl` is a bank of 34 constructed trajectories and summaries covering each failure type plus borderline cases, labelled by me. `python -m evals.calibrate` reports Cohen's kappa between the judge and my labels, and lists each disagreement.
+**The judge is calibrated before it's trusted.** `evals/probes.jsonl` is a bank of 34 constructed trajectories and summaries covering each failure type plus borderline cases. I labelled 16 by hand; the other 18 were labelled by Claude on the same rules, and each probe records who labelled it. `python -m evals.calibrate --models ...` reports Cohen's kappa between each judge and the labels, on the human-labelled probes alone and on all 34, and lists every disagreement.
 
-<!-- RESULTS: filled in after the first live run -->
+## Results
+
+Current setup: `gpt-4o-mini` agent, hybrid search, Claude Sonnet 5.5 duplicate check, Claude Sonnet 5.5 judge. 28 golden cases, all through OpenRouter.
+
+| Check | Result | Gate |
+|-------|--------|------|
+| Every write approved before it ran | 100% | 100% |
+| Only existing labels tried | 100% | 100% |
+| No claims of actions that didn't happen (rules) | 100% | 100% |
+| Stayed under the step cap | 100% | 100% |
+| Duplicate recall | 6 of 8 (0.75) | ≥ 0.6 |
+| False duplicate rate | 1 of 20 (0.05) | ≤ 0.1 |
+| Label F1 | 0.56 | ≥ 0.5 |
+| Judge: summary faithful | 28 of 28 | ≥ 0.9 |
+
+**Getting there took four runs** ([docs/experiments.md](docs/experiments.md)). BM25 search missed duplicates written in different words; measured on its own, hybrid search put every original in the top 5 (BM25: 6 of 8). But end-to-end recall then *fell*, because the agent didn't mark candidates it was shown. Pushing the prompt harder found 7 of 8 duplicates and wrongly marked 6 of 20 other issues. Instead of tuning the prompt further on the same 28 cases, a stronger model now checks each proposed duplicate: it blocked 7 of 8 wrong proposals and passed 6 of 7 right ones.
+
+**Judge calibration** (`evals/calibration.json`):
+
+| Judge | Human-labelled probes (16) | All probes (34) |
+|-------|----------------------------|-----------------|
+| `gpt-4o-mini` | kappa 1.00 | kappa 0.93 |
+| Claude Sonnet 5.5 | kappa 1.00 | kappa 1.00 |
+
+Both agree with every human label, so the probe bank doesn't separate them: it's easier than real runs. Real runs did. `gpt-4o-mini` failed three faithful summaries in live runs (for example, reading "the duplicate marking was rejected" as a false claim), and changed its verdict on one probe between two identical calibration runs. Sonnet was stable and, re-judging run 4, passed all 28 summaries, which matches my own reading. So Sonnet is the judge. The next improvement is harder probes built from those real judge mistakes.
+
+What the numbers don't show: the set is small (one duplicate case is 12.5 points), the false-duplicate rate is an upper bound (the one "false" duplicate asks for the same eval suite as its match; maintainers just never linked them), and label F1 is held down partly because the agent adds area labels that maintainers often skip.
 
 ## CI
 
@@ -69,7 +95,8 @@ python -m evals.run_evals           # re-score recordings (what CI does)
 python -m evals.run_evals --save-baseline   # keep these numbers as the baseline
 python -m evals.retrieval           # search alone: BM25 vs vectors vs hybrid, recall@k (no LLM)
 python -m evals.label_probes        # label the judge probes by hand
-python -m evals.calibrate           # judge vs human: Cohen's kappa
+python -m evals.calibrate --models openrouter:openai/gpt-4o-mini openrouter:anthropic/claude-sonnet-5.5   # judges vs labels: kappa
+python -m evals.run_evals --rejudge # re-judge saved recordings with JUDGE_MODEL (no agent rerun)
 pytest -q
 ```
 

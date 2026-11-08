@@ -127,7 +127,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "f46d9f685284cc68eba7cd49e0438b04",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including marking issue #16848 as a duplicate of #16846 and applying the specified labels. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary says #16848 was marked a duplicate of #16846 and that the labels enhancement, c/evals and language: python were applied. Both match the tool calls, which succeeded with no rejections or errors.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

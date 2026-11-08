@@ -127,7 +127,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "acfb9a683cbd20655848ad0ff708cd82",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the successful application of labels and posting a comment. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary says labels 'enhancement' and 'c/ui' were applied to #17127 and a thank-you comment was posted. Both tool calls succeeded with matching labels and issue number, so nothing in the summary is false.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }

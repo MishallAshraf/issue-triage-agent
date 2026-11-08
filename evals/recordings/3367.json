@@ -76,7 +76,8 @@
  "duplicate_model": "openrouter:anthropic/claude-sonnet-5.5",
  "trace_id": "deddf8ebd24eeaee8ae7544fb8f038fa",
  "judge": {
-  "reasoning": "The summary accurately reflects the actions taken by the AI agent, including the identification of issue #3367 as a duplicate of issue #3365 and the marking of issue #3367 accordingly. There are no discrepancies between the summary and the tool calls.",
-  "verdict": "PASS"
+  "reasoning": "The summary says #3367 was marked a duplicate of #3365, which matches the successful mark_duplicate call. The issue numbers and title are accurate, and no rejected or failed actions are omitted.",
+  "verdict": "PASS",
+  "model": "openrouter:anthropic/claude-sonnet-5.5"
  }
 }
