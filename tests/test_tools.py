@@ -26,7 +26,8 @@ def test_mark_duplicate_refuses_the_issue_itself(ws):
 
 def test_mark_duplicate_records_a_valid_call_in_the_outbox_only(ws):
     tools(ws)["mark_duplicate"].invoke({"number": 12, "original": 10, "reason": "same crash"})
-    assert ws.outbox == [{"tool": "mark_duplicate", "number": 12, "original": 10, "reason": "same crash"}]
+    assert ws.outbox == [{"tool": "mark_duplicate", "number": 12, "original": 10, "reason": "same crash",
+                          "labels": ["duplicate"]}], "marking a duplicate adds the duplicate label itself"
 
 
 def test_apply_labels_is_all_or_nothing(ws):
@@ -61,3 +62,10 @@ def test_long_snippets_are_cut_at_a_word():
     from triage.tools import SNIPPET_CHARS, _snippet
     s = _snippet("word " * 100)
     assert len(s) <= SNIPPET_CHARS + 4 and s.endswith(" ...") and "  " not in s
+
+
+def test_apply_labels_leaves_the_duplicate_label_to_mark_duplicate(ws):
+    out = tools(ws)["apply_labels"].invoke({"number": 12, "labels": ["duplicate"]})
+    assert out.startswith("Error") and "type label" in out and ws.outbox == []
+    out = tools(ws)["apply_labels"].invoke({"number": 12, "labels": ["bug", "duplicate"]})
+    assert "left out" in out and ws.outbox == [{"tool": "apply_labels", "number": 12, "labels": ["bug"]}]

@@ -17,6 +17,7 @@ from .search import IssueIndex
 
 WRITE_TOOLS = {"apply_labels", "mark_duplicate", "post_comment"}
 SNIPPET_CHARS = 200
+DUPLICATE_LABEL = "duplicate"
 
 
 def _snippet(body: str) -> str:
@@ -65,21 +66,30 @@ def build_tools(ws: Workspace) -> list[StructuredTool]:
         return json.dumps(ws.snap.labels)
 
     def apply_labels(number: int, labels: list[str]) -> str:
-        """Add existing labels to an issue. Requires human approval."""
+        """Add existing type and area labels to an issue. Requires human approval.
+        Don't include the duplicate label: mark_duplicate adds it."""
         unknown = [lb for lb in labels if lb not in ws.snap.labels]
         if unknown:
             return f"Error: labels do not exist in this repository: {unknown}. Nothing was applied."
-        ws.outbox.append({"tool": "apply_labels", "number": number, "labels": labels})
-        return f"Applied labels {labels} to #{number}."
+        # Marking a duplicate is mark_duplicate's job. Left in here, "duplicate" tends to
+        # replace the type label (bug, enhancement, ...) instead of joining it.
+        rest = [lb for lb in labels if lb != DUPLICATE_LABEL]
+        if not rest:
+            return (f"Error: '{DUPLICATE_LABEL}' is added by mark_duplicate, not here. Nothing was applied. "
+                    "Apply the issue's type label (and an area label if clear).")
+        ws.outbox.append({"tool": "apply_labels", "number": number, "labels": rest})
+        note = f" ('{DUPLICATE_LABEL}' left out: mark_duplicate adds it.)" if rest != labels else ""
+        return f"Applied labels {rest} to #{number}.{note}"
 
     def mark_duplicate(number: int, original: int, reason: str) -> str:
-        """Close an issue as a duplicate of an earlier one. Requires human approval."""
+        """Close an issue as a duplicate of an earlier one and add the duplicate label. Requires human approval."""
         if original not in ws.snap.issues:
             return f"Error: issue #{original} not found. Nothing was changed."
         if original == number:
             return "Error: an issue cannot duplicate itself. Nothing was changed."
-        ws.outbox.append({"tool": "mark_duplicate", "number": number, "original": original, "reason": reason})
-        return f"Marked #{number} as a duplicate of #{original}."
+        ws.outbox.append({"tool": "mark_duplicate", "number": number, "original": original, "reason": reason,
+                          "labels": [DUPLICATE_LABEL]})
+        return f"Marked #{number} as a duplicate of #{original} and added the '{DUPLICATE_LABEL}' label."
 
     def post_comment(number: int, body: str) -> str:
         """Post a reply on the issue for the person who opened it. Requires human approval."""

@@ -124,3 +124,38 @@ def test_no_verifier_means_no_check(ws):
     asked = []
     run_triage(ws, ScriptedModel(script=script_mark_duplicate()), lambda p: asked.append(p) or "approve")
     assert len(asked) == 1
+
+
+def test_finishing_without_labels_gets_one_nudge(ws):
+    script = [
+        AIMessage("", tool_calls=[call("mark_duplicate", {"number": 12, "original": 10, "reason": "same"}, "w1")]),
+        AIMessage("Marked #12 as a duplicate of #10."),
+        AIMessage("", tool_calls=[call("apply_labels", {"number": 12, "labels": ["bug"]}, "w2")]),
+        AIMessage("Marked #12 as a duplicate of #10 and labelled it bug."),
+    ]
+    run = run_triage(ws, ScriptedModel(script=script), lambda p: "approve")
+    assert run["nudged_to_label"]
+    assert [s["tool"] for s in trajectory(run["messages"])] == ["mark_duplicate", "apply_labels"]
+    assert run["final"].endswith("labelled it bug.")
+
+
+def test_the_nudge_is_sent_only_once(ws):
+    script = [AIMessage("No labels fit this issue.")]
+    model = ScriptedModel(script=script)
+    run = run_triage(ws, model, lambda p: "approve")
+    assert run["nudged_to_label"] and model.calls == 2 and run["final"] == "No labels fit this issue."
+
+
+def test_rejected_labels_are_not_nudged_again(ws):
+    script = [
+        AIMessage("", tool_calls=[call("apply_labels", {"number": 12, "labels": ["bug"]}, "w1")]),
+        AIMessage("The bug label was rejected."),
+    ]
+    run = run_triage(ws, ScriptedModel(script=script), lambda p: "reject")
+    assert not run["nudged_to_label"]
+
+
+def test_no_nudge_once_the_step_cap_is_reached(ws):
+    script = [AIMessage("", tool_calls=[call("get_issue", {"number": 12}, "r1")]), AIMessage("Done.")]
+    run = run_triage(ws, ScriptedModel(script=script), lambda p: "approve", max_steps=2)
+    assert not run["nudged_to_label"] and run["steps"] == 2

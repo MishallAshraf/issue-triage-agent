@@ -38,7 +38,7 @@ For the issue you are given:
 1. Read it with get_issue.
 2. Call list_labels and pick only labels that exist. Usually one type label (bug, enhancement, ...) and, if clear, an area label. Don't guess.
 3. Search for earlier issues describing the same problem. Results are ranked best first, with a short snippet. Before deciding, open the top 1-3 candidates that look related with get_issue and compare them with this issue. Call mark_duplicate if an earlier issue reports the same problem or request, even in different words; don't call it if they only share an area.
-4. Apply the labels with apply_labels. Optionally post one short, polite comment.
+4. Apply the type and area labels with apply_labels, also when you marked the issue as a duplicate (mark_duplicate adds the duplicate label itself). Optionally post one short, polite comment.
 
 Write tools (apply_labels, mark_duplicate, post_comment) need a human's approval and may be rejected. If one is rejected, don't retry it; continue with the rest.
 
@@ -51,9 +51,19 @@ class TriageState(TypedDict):
     decisions: dict[str, str]  # tool_call_id -> "approve" | "reject" | "check_failed"
     checks: dict[str, str]     # tool_call_id -> the verifier's reason, for duplicates it judged different
     stopped_by_cap: bool
+    nudged: bool               # sent back once because it tried to finish without labelling
 
 
 CHECK_FAILED = "Not run: the duplicate check judged these to be different problems."
+
+LABEL_NUDGE = ("You haven't called apply_labels yet. Every issue should get labels, duplicates too. "
+               "If existing labels fit this issue, apply them now. If none fit, say so in your summary.")
+
+
+def tried_labelling(messages: list[AnyMessage]) -> bool:
+    """True once the agent has called apply_labels, whatever the outcome (approved,
+    rejected or refused). A rejection is the human's call, so it isn't retried."""
+    return any(tc["name"] == "apply_labels" for m in messages if isinstance(m, AIMessage) for tc in m.tool_calls)
 
 
 def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None, verifier=None):
@@ -68,6 +78,10 @@ def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None,
     def route(state: TriageState) -> str:
         last = state["messages"][-1]
         if not isinstance(last, AIMessage) or not last.tool_calls:
+            # Finishing without labels is a known failure (it happens after marking a
+            # duplicate). Send it back once; the step cap still applies.
+            if not state.get("nudged") and state["steps"] < cap and not tried_labelling(state["messages"]):
+                return "nudge"
             return END
         if state["steps"] >= cap:
             return "cap"
@@ -122,15 +136,20 @@ def build_graph(ws: Workspace, llm: BaseChatModel, max_steps: int | None = None,
                 for tc in state["messages"][-1].tool_calls]
         return {"messages": msgs, "stopped_by_cap": True}
 
+    def nudge(state: TriageState) -> dict:
+        return {"messages": [HumanMessage(LABEL_NUDGE)], "nudged": True}
+
     g = StateGraph(TriageState)
     g.add_node("agent", agent)
     g.add_node("check_duplicates", check_duplicates)
     g.add_node("approval", approval)
     g.add_node("tools", run_tools)
     g.add_node("cap", cap_hit)
+    g.add_node("nudge", nudge)
     g.add_edge(START, "agent")
-    g.add_conditional_edges("agent", route, {"tools": "tools", "approval": "approval",
+    g.add_conditional_edges("agent", route, {"tools": "tools", "approval": "approval", "nudge": "nudge",
                                              "check_duplicates": "check_duplicates", "cap": "cap", END: END})
+    g.add_edge("nudge", "agent")
     g.add_edge("check_duplicates", "approval")
     g.add_edge("approval", "tools")
     g.add_edge("tools", "agent")
@@ -150,7 +169,7 @@ def run_triage(ws: Workspace, llm: BaseChatModel, approver: Approver, *,
     state = {
         "messages": [SystemMessage(SYSTEM_PROMPT.format(repo=ws.snap.repo)),
                      HumanMessage(f"Triage issue #{ws.issue_number}.")],
-        "steps": 0, "decisions": {}, "checks": {}, "stopped_by_cap": False,
+        "steps": 0, "decisions": {}, "checks": {}, "stopped_by_cap": False, "nudged": False,
     }
     approvals = []
     result = graph.invoke(state, config)
@@ -167,6 +186,7 @@ def run_triage(ws: Workspace, llm: BaseChatModel, approver: Approver, *,
         "approvals": approvals,
         "steps": result["steps"],
         "stopped_by_cap": result.get("stopped_by_cap", False),
+        "nudged_to_label": result.get("nudged", False),
         "final": result["messages"][-1].content if isinstance(result["messages"][-1], AIMessage) else "",
     }
 
@@ -182,7 +202,8 @@ def trajectory(messages: list[AnyMessage]) -> list[dict]:
     return steps
 
 
-def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int, stopped_by_cap: bool) -> dict:
+def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int, stopped_by_cap: bool,
+              nudged_to_label: bool = False) -> dict:
     """What happened in one run, stated once by the code that ran it.
 
     This goes on the root trace observation, so anyone opening a trace (or a later
@@ -218,6 +239,7 @@ def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int
             "duplicates_blocked_by_check": sum(kind(s["result"]) == "blocked" for s in writes),
             "tool_errors": sum(kind(s["result"]) == "failed" for s in steps),
             "stopped_by_cap": stopped_by_cap,
+            "nudged_to_label": nudged_to_label,
         },
     }
 
@@ -225,7 +247,8 @@ def summarize(steps: list[dict], *, final: str, outbox: list[dict], n_steps: int
 def summarize_run(run: dict) -> dict:
     """`summarize` for the dict `run_triage` returns."""
     return summarize(trajectory(run["messages"]), final=run["final"], outbox=run["outbox"],
-                     n_steps=run["steps"], stopped_by_cap=run["stopped_by_cap"])
+                     n_steps=run["steps"], stopped_by_cap=run["stopped_by_cap"],
+                     nudged_to_label=run.get("nudged_to_label", False))
 
 
 def dumps_run(run: dict) -> str:

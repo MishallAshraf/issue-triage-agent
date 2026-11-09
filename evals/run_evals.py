@@ -24,7 +24,7 @@ HERE = Path(__file__).parent
 RECORDINGS = HERE / "recordings"
 BASELINE = HERE / "baseline.json"
 # Metrics where a lower number is better; for every other metric, higher is better.
-LOWER_IS_BETTER = {"false_duplicate_rate", "mean_steps"}
+LOWER_IS_BETTER = {"false_duplicate_rate", "mean_steps", "nudged_to_label"}
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -97,7 +97,8 @@ def live(cases: list[dict], judge_on: bool) -> None:
                 tr.score("label_f1", res["labels"]["f1"])
             tr.score("duplicate", res["duplicate"])
             tr.finish(summarize(run["trajectory"], final=run["final"], outbox=run["outbox"],
-                                n_steps=run["steps"], stopped_by_cap=run["stopped_by_cap"]))
+                                n_steps=run["steps"], stopped_by_cap=run["stopped_by_cap"],
+                                nudged_to_label=run["nudged_to_label"]))
         (RECORDINGS / f"{case['issue']}.json").write_text(json.dumps(redact(run), indent=1), encoding="utf-8")
         f1 = f"{res['labels']['f1']:.2f}" if res["labels"] else "n/a"
         print(f"  #{case['issue']}: {res['duplicate']}, label F1 {f1}, "
@@ -169,6 +170,8 @@ def score(cases: list[dict], repo_labels: set[str]) -> dict:
         row["model"] = run.get("model")
         row["search"] = run.get("search", "bm25")  # recordings from before SEARCH_METHOD existed used BM25
         row["duplicate_model"] = run.get("duplicate_model")
+        row["labels_attempted"] = any(s["tool"] == "apply_labels" for s in run["trajectory"])
+        row["nudged_to_label"] = run.get("nudged_to_label", False)
         rows.append(row)
 
     n = len(rows)
@@ -190,6 +193,8 @@ def score(cases: list[dict], repo_labels: set[str]) -> dict:
         "false_duplicate_rate": (sum(r["duplicate"] == "false_duplicate" for r in non_dup) / len(non_dup)) if non_dup else None,
         "judge_faithful": (sum(r["judge"] == "PASS" for r in judged) / len(judged)) if judged else None,
         "mean_steps": sum(r["steps"] for r in rows) / n,
+        "labels_attempted": sum(r["labels_attempted"] for r in rows) / n,
+        "nudged_to_label": sum(r["nudged_to_label"] for r in rows),
         "rows": rows,
     }
 
